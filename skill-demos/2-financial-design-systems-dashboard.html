@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GainLab — Skill Demo: financial-design-systems</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    /* Chart color palette from financial-design-systems skill */
+    --positive: hsl(154 80% 60%);
+    --negative: hsl(346 80% 62%);
+    --neutral: hsl(216 90% 68%);
+    --bg: hsl(222 47% 11%);
+    --surface: hsl(222 47% 15%);
+    --surface-2: hsl(222 47% 18%);
+    --grid: hsl(222 47% 20%);
+    --text-primary: hsl(210 40% 98%);
+    --text-secondary: hsl(215 20% 65%);
+    --text-muted: hsl(215 20% 45%);
+    --series-1: hsl(200 90% 65%);
+    --series-2: hsl(280 90% 65%);
+    --series-3: hsl(45 90% 65%);
+    --series-4: hsl(160 90% 65%);
+    --series-5: hsl(320 90% 65%);
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--grid);
+  }
+  .header h1 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-badge {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    padding: 3px 8px;
+    background: var(--surface-2);
+    border-radius: 4px;
+    color: var(--text-muted);
+  }
+  .time-filters {
+    display: flex;
+    gap: 4px;
+    background: var(--surface);
+    border-radius: 6px;
+    padding: 3px;
+  }
+  .time-btn {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    padding: 5px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .time-btn.active {
+    background: var(--surface-2);
+    color: var(--text-primary);
+  }
+
+  /* Price cards grid */
+  .price-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .price-card {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid var(--grid);
+    transition: border-color 0.3s;
+  }
+  .price-card:hover {
+    border-color: rgba(255,255,255,0.1);
+  }
+
+  .price-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .symbol {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .exchange-tag {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    padding: 2px 6px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .price-value {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 8px;
+  }
+
+  .price-change {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .change-pct {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .change-pct.up {
+    color: var(--positive);
+    background: hsla(154, 80%, 60%, 0.1);
+  }
+  .change-pct.down {
+    color: var(--negative);
+    background: hsla(346, 80%, 62%, 0.1);
+  }
+  .change-abs {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  /* Sparkline */
+  .sparkline-container {
+    margin-top: 12px;
+    height: 40px;
+  }
+
+  /* Main chart area */
+  .chart-section {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .main-chart {
+    background: var(--surface);
+    border: 1px solid var(--grid);
+    border-radius: 10px;
+    padding: 20px;
+  }
+  .chart-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .chart-title h2 {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .candlestick-area {
+    width: 100%;
+    height: 300px;
+    position: relative;
+  }
+
+  /* Gridlines */
+  .chart-grid line {
+    stroke: var(--grid);
+    stroke-dasharray: 3 3;
+  }
+
+  /* Candlestick colors from skill */
+  .candle-up { fill: hsl(154 80% 60%); }
+  .candle-up-stroke { stroke: hsl(154 80% 50%); }
+  .candle-down { fill: hsl(346 80% 62%); }
+  .candle-down-stroke { stroke: hsl(346 80% 52%); }
+  .wick { stroke: hsl(215 20% 45%); stroke-width: 1; }
+
+  /* Volume bars */
+  .volume-up { fill: hsla(154, 80%, 60%, 0.3); }
+  .volume-down { fill: hsla(346, 80%, 62%, 0.3); }
+
+  /* Side panel */
+  .side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .panel-card {
+    background: var(--surface);
+    border: 1px solid var(--grid);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .panel-card h3 {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+
+  /* Percentage bar from skill */
+  .pct-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .pct-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    width: 70px;
+    flex-shrink: 0;
+  }
+  .pct-bar-track {
+    flex: 1;
+    display: flex;
+    height: 6px;
+    gap: 2px;
+  }
+  .pct-bar-neg {
+    display: flex;
+    justify-content: flex-end;
+    flex: 1;
+  }
+  .pct-bar-pos {
+    flex: 1;
+  }
+  .pct-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+  .pct-fill.up { background: var(--positive); }
+  .pct-fill.down { background: var(--negative); }
+  .pct-divider {
+    width: 1px;
+    height: 14px;
+    background: var(--grid);
+    align-self: center;
+  }
+  .pct-value {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    width: 52px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .pct-value.up { color: var(--positive); }
+  .pct-value.down { color: var(--negative); }
+
+  /* Data series legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+  }
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  /* Orderbook mini */
+  .orderbook-row {
+    display: flex;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-variant-numeric: tabular-nums;
+    padding: 3px 0;
+    position: relative;
+  }
+  .ob-price {
+    width: 80px;
+    font-weight: 600;
+  }
+  .ob-price.ask { color: var(--negative); }
+  .ob-price.bid { color: var(--positive); }
+  .ob-size {
+    width: 60px;
+    text-align: right;
+    color: var(--text-secondary);
+  }
+  .ob-bar {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    opacity: 0.08;
+    border-radius: 2px;
+  }
+  .ob-bar.ask { background: var(--negative); }
+  .ob-bar.bid { background: var(--positive); }
+
+  .skill-badge {
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-top: 24px;
+    padding: 8px;
+    border-top: 1px solid var(--grid);
+  }
+
+  @media (max-width: 900px) {
+    .price-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-section { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+  <div class="dashboard">
+    <div class="header">
+      <h1>
+        <span>📊</span> GainLab Dashboard
+        <span class="header-badge">DEMO</span>
+      </h1>
+      <div class="time-filters">
+        <button class="time-btn">1H</button>
+        <button class="time-btn">4H</button>
+        <button class="time-btn active">1D</button>
+        <button class="time-btn">1W</button>
+        <button class="time-btn">1M</button>
+      </div>
+    </div>
+
+    <!-- Price Cards -->
+    <div class="price-grid">
+      <div class="price-card">
+        <div class="price-card-header">
+          <span class="symbol">BTC/USDT.P</span>
+          <span class="exchange-tag">Binance</span>
+        </div>
+        <div class="price-value">$97,842.50</div>
+        <div class="price-change">
+          <span class="change-pct up">+2.34%</span>
+          <span class="change-abs">+$2,238.40</span>
+        </div>
+        <div class="sparkline-container">
+          <svg width="100%" height="40" viewBox="0 0 160 40" preserveAspectRatio="none">
+            <polyline points="0,30 15,28 30,25 45,30 60,22 75,18 90,20 105,15 120,12 135,14 160,8"
+              fill="none" stroke="hsl(154 80% 60%)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="price-card">
+        <div class="price-card-header">
+          <span class="symbol">ETH/USDT.P</span>
+          <span class="exchange-tag">OKX</span>
+        </div>
+        <div class="price-value">$2,648.30</div>
+        <div class="price-change">
+          <span class="change-pct down">-1.52%</span>
+          <span class="change-abs">-$40.82</span>
+        </div>
+        <div class="sparkline-container">
+          <svg width="100%" height="40" viewBox="0 0 160 40" preserveAspectRatio="none">
+            <polyline points="0,12 15,14 30,10 45,18 60,20 75,22 90,19 105,25 120,28 135,26 160,30"
+              fill="none" stroke="hsl(346 80% 62%)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="price-card">
+        <div class="price-card-header">
+          <span class="symbol">SOL/USDT.P</span>
+          <span class="exchange-tag">Bybit</span>
+        </div>
+        <div class="price-value">$198.45</div>
+        <div class="price-change">
+          <span class="change-pct up">+5.67%</span>
+          <span class="change-abs">+$10.64</span>
+        </div>
+        <div class="sparkline-container">
+          <svg width="100%" height="40" viewBox="0 0 160 40" preserveAspectRatio="none">
+            <polyline points="0,35 15,32 30,28 45,30 60,24 75,20 90,22 105,16 120,10 135,8 160,5"
+              fill="none" stroke="hsl(154 80% 60%)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="price-card">
+        <div class="price-card-header">
+          <span class="symbol">HYPE/USDT</span>
+          <span class="exchange-tag">HyperLiquid</span>
+        </div>
+        <div class="price-value">$24.18</div>
+        <div class="price-change">
+          <span class="change-pct up">+12.40%</span>
+          <span class="change-abs">+$2.67</span>
+        </div>
+        <div class="sparkline-container">
+          <svg width="100%" height="40" viewBox="0 0 160 40" preserveAspectRatio="none">
+            <polyline points="0,38 15,35 30,30 45,28 60,25 75,22 90,18 105,14 120,10 135,6 160,3"
+              fill="none" stroke="hsl(154 80% 60%)" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main chart + side panel -->
+    <div class="chart-section">
+      <div class="main-chart">
+        <div class="chart-title">
+          <h2>BTC/USDT Perpetual — 1D</h2>
+          <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:hsl(154 80% 60%)"></div>Bullish</div>
+            <div class="legend-item"><div class="legend-dot" style="background:hsl(346 80% 62%)"></div>Bearish</div>
+            <div class="legend-item"><div class="legend-dot" style="background:hsl(200 90% 65%)"></div>MA20</div>
+            <div class="legend-item"><div class="legend-dot" style="background:hsl(280 90% 65%)"></div>MA50</div>
+          </div>
+        </div>
+        <div class="candlestick-area">
+          <svg width="100%" height="300" viewBox="0 0 700 300">
+            <!-- Grid -->
+            <g class="chart-grid">
+              <line x1="0" y1="60" x2="700" y2="60"/>
+              <line x1="0" y1="120" x2="700" y2="120"/>
+              <line x1="0" y1="180" x2="700" y2="180"/>
+              <line x1="0" y1="240" x2="700" y2="240"/>
+            </g>
+            <!-- Y-axis labels -->
+            <g font-family="JetBrains Mono" font-size="10" fill="hsl(215 20% 45%)">
+              <text x="660" y="56">99K</text>
+              <text x="660" y="116">97K</text>
+              <text x="660" y="176">95K</text>
+              <text x="660" y="236">93K</text>
+            </g>
+            <!-- Candlesticks -->
+            <!-- Up candles -->
+            <line x1="40" y1="140" x2="40" y2="190" class="wick"/>
+            <rect x="34" y="150" width="12" height="30" class="candle-up" rx="1"/>
+
+            <line x1="80" y1="130" x2="80" y2="175" class="wick"/>
+            <rect x="74" y="135" width="12" height="25" class="candle-up" rx="1"/>
+
+            <line x1="160" y1="100" x2="160" y2="160" class="wick"/>
+            <rect x="154" y="110" width="12" height="35" class="candle-up" rx="1"/>
+
+            <line x1="240" y1="90" x2="240" y2="140" class="wick"/>
+            <rect x="234" y="95" width="12" height="30" class="candle-up" rx="1"/>
+
+            <line x1="360" y1="60" x2="360" y2="110" class="wick"/>
+            <rect x="354" y="65" width="12" height="28" class="candle-up" rx="1"/>
+
+            <line x1="440" y1="55" x2="440" y2="100" class="wick"/>
+            <rect x="434" y="60" width="12" height="25" class="candle-up" rx="1"/>
+
+            <line x1="520" y1="50" x2="520" y2="95" class="wick"/>
+            <rect x="514" y="55" width="12" height="22" class="candle-up" rx="1"/>
+
+            <line x1="600" y1="40" x2="600" y2="80" class="wick"/>
+            <rect x="594" y="45" width="12" height="20" class="candle-up" rx="1"/>
+
+            <!-- Down candles -->
+            <line x1="120" y1="120" x2="120" y2="170" class="wick"/>
+            <rect x="114" y="125" width="12" height="30" class="candle-down" rx="1"/>
+
+            <line x1="200" y1="100" x2="200" y2="155" class="wick"/>
+            <rect x="194" y="110" width="12" height="32" class="candle-down" rx="1"/>
+
+            <line x1="280" y1="85" x2="280" y2="135" class="wick"/>
+            <rect x="274" y="90" width="12" height="28" class="candle-down" rx="1"/>
+
+            <line x1="320" y1="80" x2="320" y2="125" class="wick"/>
+            <rect x="314" y="85" width="12" height="25" class="candle-down" rx="1"/>
+
+            <line x1="400" y1="60" x2="400" y2="105" class="wick"/>
+            <rect x="394" y="65" width="12" height="26" class="candle-down" rx="1"/>
+
+            <line x1="480" y1="55" x2="480" y2="100" class="wick"/>
+            <rect x="474" y="60" width="12" height="28" class="candle-down" rx="1"/>
+
+            <line x1="560" y1="45" x2="560" y2="90" class="wick"/>
+            <rect x="554" y="50" width="12" height="24" class="candle-down" rx="1"/>
+
+            <line x1="640" y1="38" x2="640" y2="78" class="wick"/>
+            <rect x="634" y="42" width="12" height="22" class="candle-down" rx="1"/>
+
+            <!-- MA lines -->
+            <polyline points="40,165 80,148 120,140 160,128 200,125 240,110 280,105 320,98 360,85 400,80 440,72 480,70 520,65 560,60 600,55 640,50"
+              fill="none" stroke="hsl(200 90% 65%)" stroke-width="1.5" opacity="0.7"/>
+            <polyline points="40,175 80,168 120,160 160,150 200,145 240,135 280,128 320,120 360,110 400,105 440,95 480,90 520,82 560,75 600,68 640,62"
+              fill="none" stroke="hsl(280 90% 65%)" stroke-width="1.5" opacity="0.5"/>
+
+            <!-- Volume bars -->
+            <rect x="34" y="270" width="12" height="25" class="volume-up" rx="1"/>
+            <rect x="74" y="265" width="12" height="30" class="volume-up" rx="1"/>
+            <rect x="114" y="272" width="12" height="23" class="volume-down" rx="1"/>
+            <rect x="154" y="260" width="12" height="35" class="volume-up" rx="1"/>
+            <rect x="194" y="275" width="12" height="20" class="volume-down" rx="1"/>
+            <rect x="234" y="258" width="12" height="37" class="volume-up" rx="1"/>
+            <rect x="274" y="270" width="12" height="25" class="volume-down" rx="1"/>
+            <rect x="314" y="273" width="12" height="22" class="volume-down" rx="1"/>
+            <rect x="354" y="255" width="12" height="40" class="volume-up" rx="1"/>
+            <rect x="394" y="268" width="12" height="27" class="volume-down" rx="1"/>
+            <rect x="434" y="262" width="12" height="33" class="volume-up" rx="1"/>
+            <rect x="474" y="270" width="12" height="25" class="volume-down" rx="1"/>
+            <rect x="514" y="265" width="12" height="30" class="volume-up" rx="1"/>
+            <rect x="554" y="272" width="12" height="23" class="volume-down" rx="1"/>
+            <rect x="594" y="258" width="12" height="37" class="volume-up" rx="1"/>
+            <rect x="634" y="268" width="12" height="27" class="volume-down" rx="1"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="side-panel">
+        <!-- Funding Rate -->
+        <div class="panel-card">
+          <h3>Funding Rate 24H</h3>
+          <div class="pct-bar-row">
+            <span class="pct-label">Binance</span>
+            <div class="pct-bar-track">
+              <div class="pct-bar-neg"></div>
+              <div class="pct-divider"></div>
+              <div class="pct-bar-pos"><div class="pct-fill up" style="width:65%"></div></div>
+            </div>
+            <span class="pct-value up">+0.032%</span>
+          </div>
+          <div class="pct-bar-row">
+            <span class="pct-label">OKX</span>
+            <div class="pct-bar-track">
+              <div class="pct-bar-neg"></div>
+              <div class="pct-divider"></div>
+              <div class="pct-bar-pos"><div class="pct-fill up" style="width:48%"></div></div>
+            </div>
+            <span class="pct-value up">+0.024%</span>
+          </div>
+          <div class="pct-bar-row">
+            <span class="pct-label">Bybit</span>
+            <div class="pct-bar-track">
+              <div class="pct-bar-neg"><div class="pct-fill down" style="width:30%"></div></div>
+              <div class="pct-divider"></div>
+              <div class="pct-bar-pos"></div>
+            </div>
+            <span class="pct-value down">-0.015%</span>
+          </div>
+          <div class="pct-bar-row">
+            <span class="pct-label">HyperLiquid</span>
+            <div class="pct-bar-track">
+              <div class="pct-bar-neg"></div>
+              <div class="pct-divider"></div>
+              <div class="pct-bar-pos"><div class="pct-fill up" style="width:82%"></div></div>
+            </div>
+            <span class="pct-value up">+0.041%</span>
+          </div>
+        </div>
+
+        <!-- Mini Orderbook -->
+        <div class="panel-card">
+          <h3>Order Book</h3>
+          <div class="orderbook-row">
+            <span class="ob-price ask">97,920.00</span>
+            <span class="ob-size">12.45</span>
+            <div class="ob-bar ask" style="width:80%"></div>
+          </div>
+          <div class="orderbook-row">
+            <span class="ob-price ask">97,900.50</span>
+            <span class="ob-size">8.32</span>
+            <div class="ob-bar ask" style="width:55%"></div>
+          </div>
+          <div class="orderbook-row">
+            <span class="ob-price ask">97,880.00</span>
+            <span class="ob-size">5.18</span>
+            <div class="ob-bar ask" style="width:35%"></div>
+          </div>
+          <div style="text-align:center; font-family:var(--font-mono); font-size:1rem; font-weight:700; padding:8px 0; color:var(--positive)">
+            97,842.50 ↑
+          </div>
+          <div class="orderbook-row">
+            <span class="ob-price bid">97,830.00</span>
+            <span class="ob-size">6.72</span>
+            <div class="ob-bar bid" style="width:42%"></div>
+          </div>
+          <div class="orderbook-row">
+            <span class="ob-price bid">97,810.50</span>
+            <span class="ob-size">10.15</span>
+            <div class="ob-bar bid" style="width:65%"></div>
+          </div>
+          <div class="orderbook-row">
+            <span class="ob-price bid">97,800.00</span>
+            <span class="ob-size">15.88</span>
+            <div class="ob-bar bid" style="width:95%"></div>
+          </div>
+        </div>
+
+        <!-- Open Interest -->
+        <div class="panel-card">
+          <h3>Open Interest</h3>
+          <div style="font-family:var(--font-mono); font-size:1.4rem; font-weight:700; margin-bottom:8px;">$18.4B</div>
+          <div style="display:flex; gap:12px;">
+            <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--positive)">Long 54.2%</span>
+            <span style="font-family:var(--font-mono); font-size:0.7rem; color:var(--negative)">Short 45.8%</span>
+          </div>
+          <div style="display:flex; height:6px; border-radius:3px; overflow:hidden; margin-top:8px;">
+            <div style="width:54.2%; background:var(--positive)"></div>
+            <div style="width:45.8%; background:var(--negative)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="skill-badge">Skill: financial-design-systems (wpank) — Chart palette, candlestick colors, percentage bars, sparklines, orderbook</div>
+  </div>
+</body>
+</html>

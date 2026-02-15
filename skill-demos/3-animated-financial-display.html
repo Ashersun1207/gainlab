@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GainLab — Skill Demo: animated-financial-display</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface-2: #1a2234;
+    --border: #1e293b;
+    --positive: #22c55e;
+    --positive-bg: rgba(34,197,94,0.1);
+    --negative: #ef4444;
+    --negative-bg: rgba(239,68,68,0.1);
+    --text: #f1f5f9;
+    --text-dim: #64748b;
+    --blue: #3b82f6;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 32px;
+  }
+
+  h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  /* Large price hero */
+  .price-hero {
+    text-align: center;
+    padding: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    position: relative;
+    overflow: hidden;
+  }
+  .price-hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--positive), transparent);
+    opacity: 0;
+    animation: topGlow 3s ease-in-out infinite;
+  }
+  @keyframes topGlow {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+
+  .price-symbol {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .price-big {
+    font-family: var(--font-mono);
+    font-size: 3.5rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+    transition: color 0.3s;
+    position: relative;
+  }
+
+  /* Flash animations from skill */
+  @keyframes flash-up {
+    0% {
+      color: var(--positive);
+      text-shadow: 0 0 20px rgba(34,197,94,0.5);
+    }
+    100% {
+      color: var(--text);
+      text-shadow: none;
+    }
+  }
+  @keyframes flash-down {
+    0% {
+      color: var(--negative);
+      text-shadow: 0 0 20px rgba(239,68,68,0.5);
+    }
+    100% {
+      color: var(--text);
+      text-shadow: none;
+    }
+  }
+  .flash-up { animation: flash-up 0.6s ease-out; }
+  .flash-down { animation: flash-down 0.6s ease-out; }
+
+  .price-change-row {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .price-change-badge {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .price-change-badge.up {
+    color: var(--positive);
+    background: var(--positive-bg);
+  }
+  .price-change-badge.down {
+    color: var(--negative);
+    background: var(--negative-bg);
+  }
+
+  /* Metric cards grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 700px;
+  }
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    transition: border-color 0.3s;
+  }
+  .metric-card:hover { border-color: rgba(255,255,255,0.1); }
+  .metric-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  .metric-value {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric-sub {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .metric-sub.up { color: var(--positive); }
+  .metric-sub.down { color: var(--negative); }
+
+  /* Ticker strip */
+  .ticker-strip {
+    width: 100%;
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .ticker-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: all 0.3s;
+  }
+  .ticker-row:hover {
+    background: var(--surface-2);
+    border-color: rgba(255,255,255,0.08);
+  }
+  .ticker-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ticker-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+  .ticker-name {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .ticker-pair {
+    font-size: 0.7rem;
+    color: var(--text-dim);
+  }
+  .ticker-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .ticker-price {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 100px;
+    text-align: right;
+  }
+  .ticker-pct {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 4px;
+    min-width: 72px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .ticker-pct.up { color: var(--positive); background: var(--positive-bg); }
+  .ticker-pct.down { color: var(--negative); background: var(--negative-bg); }
+
+  .ticker-spark {
+    width: 80px;
+    height: 24px;
+  }
+
+  .skill-badge {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    margin-top: 16px;
+  }
+
+  @media (max-width: 600px) {
+    .metrics-grid { grid-template-columns: 1fr; }
+    .price-big { font-size: 2.5rem; }
+  }
+</style>
+</head>
+<body>
+  <h1>📈 Animated Financial Display Demo</h1>
+
+  <!-- Large price with flash effect -->
+  <div class="price-hero" id="priceHero">
+    <div class="price-symbol">BTC / USDT Perpetual</div>
+    <div class="price-big" id="bigPrice">$97,842.50</div>
+    <div class="price-change-row">
+      <span class="price-change-badge up" id="changePct">+2.34%</span>
+      <span class="price-change-badge up" id="changeAbs">+$2,238.40</span>
+    </div>
+  </div>
+
+  <!-- Animated metric cards -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">24h Volume</div>
+      <div class="metric-value" id="metricVol">$48.2B</div>
+      <div class="metric-sub up">+12.4% from previous</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Open Interest</div>
+      <div class="metric-value" id="metricOI">$18.4B</div>
+      <div class="metric-sub up">+3.8% from previous</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Funding Rate</div>
+      <div class="metric-value" id="metricFR">0.032%</div>
+      <div class="metric-sub down">-0.005% from previous</div>
+    </div>
+  </div>
+
+  <!-- Ticker strip with sparklines -->
+  <div class="ticker-strip">
+    <div class="ticker-row" id="ticker-btc">
+      <div class="ticker-left">
+        <div class="ticker-icon" style="background:#f7931a20; color:#f7931a">₿</div>
+        <div>
+          <div class="ticker-name">BTC</div>
+          <div class="ticker-pair">Bitcoin</div>
+        </div>
+      </div>
+      <div class="ticker-right">
+        <svg class="ticker-spark" viewBox="0 0 80 24">
+          <polyline points="0,18 10,16 20,12 30,14 40,8 50,6 60,9 70,4 80,2" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="ticker-price" id="tp-btc">$97,842.50</span>
+        <span class="ticker-pct up">+2.34%</span>
+      </div>
+    </div>
+
+    <div class="ticker-row" id="ticker-eth">
+      <div class="ticker-left">
+        <div class="ticker-icon" style="background:#627eea20; color:#627eea">Ξ</div>
+        <div>
+          <div class="ticker-name">ETH</div>
+          <div class="ticker-pair">Ethereum</div>
+        </div>
+      </div>
+      <div class="ticker-right">
+        <svg class="ticker-spark" viewBox="0 0 80 24">
+          <polyline points="0,6 10,8 20,4 30,10 40,12 50,14 60,11 70,16 80,18" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="ticker-price" id="tp-eth">$2,648.30</span>
+        <span class="ticker-pct down">-1.52%</span>
+      </div>
+    </div>
+
+    <div class="ticker-row" id="ticker-sol">
+      <div class="ticker-left">
+        <div class="ticker-icon" style="background:#9945ff20; color:#9945ff">◎</div>
+        <div>
+          <div class="ticker-name">SOL</div>
+          <div class="ticker-pair">Solana</div>
+        </div>
+      </div>
+      <div class="ticker-right">
+        <svg class="ticker-spark" viewBox="0 0 80 24">
+          <polyline points="0,20 10,18 20,14 30,16 40,10 50,8 60,6 70,4 80,2" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="ticker-price" id="tp-sol">$198.45</span>
+        <span class="ticker-pct up">+5.67%</span>
+      </div>
+    </div>
+
+    <div class="ticker-row" id="ticker-hype">
+      <div class="ticker-left">
+        <div class="ticker-icon" style="background:#00f0ff20; color:#00f0ff">H</div>
+        <div>
+          <div class="ticker-name">HYPE</div>
+          <div class="ticker-pair">HyperLiquid</div>
+        </div>
+      </div>
+      <div class="ticker-right">
+        <svg class="ticker-spark" viewBox="0 0 80 24">
+          <polyline points="0,22 10,20 20,16 30,14 40,10 50,8 60,6 70,3 80,1" fill="none" stroke="#22c55e" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <span class="ticker-price" id="tp-hype">$24.18</span>
+        <span class="ticker-pct up">+12.40%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="skill-badge">Skill: animated-financial-display (wpank) — Spring numbers, value flash, formatting, ticker</div>
+
+  <script>
+    // Simulate real-time price updates with spring animation + flash effect
+    const bigPriceEl = document.getElementById('bigPrice');
+    const changePctEl = document.getElementById('changePct');
+    const changeAbsEl = document.getElementById('changeAbs');
+
+    let currentPrice = 97842.50;
+    let basePrice = 95604.10; // yesterday close
+
+    function formatCurrency(value) {
+      return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formatCompact(value) {
+      if (Math.abs(value) >= 1e9) return '$' + (value / 1e9).toFixed(1) + 'B';
+      if (Math.abs(value) >= 1e6) return '$' + (value / 1e6).toFixed(1) + 'M';
+      if (Math.abs(value) >= 1e3) return '$' + (value / 1e3).toFixed(1) + 'K';
+      return formatCurrency(value);
+    }
+
+    // Spring-animated number transition
+    function animateNumber(el, from, to, duration, formatter) {
+      const start = performance.now();
+      const diff = to - from;
+
+      function step(timestamp) {
+        const elapsed = timestamp - start;
+        const progress = Math.min(elapsed / duration, 1);
+        // Spring easing (damped oscillation)
+        const spring = 1 - Math.exp(-6 * progress) * Math.cos(8 * progress * (1 - progress));
+        const current = from + diff * spring;
+        el.textContent = formatter(current);
+        if (progress < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    // Flash effect on change
+    function flashPrice(direction) {
+      bigPriceEl.classList.remove('flash-up', 'flash-down');
+      void bigPriceEl.offsetWidth; // force reflow
+      bigPriceEl.classList.add(direction === 'up' ? 'flash-up' : 'flash-down');
+    }
+
+    // Simulate price ticks
+    function tick() {
+      const oldPrice = currentPrice;
+      const change = (Math.random() - 0.48) * 150; // slight upward bias
+      currentPrice = Math.max(oldPrice + change, 90000);
+
+      const direction = currentPrice > oldPrice ? 'up' : 'down';
+
+      // Animate price with spring physics
+      animateNumber(bigPriceEl, oldPrice, currentPrice, 500, formatCurrency);
+      flashPrice(direction);
+
+      // Update change badges
+      const pctChange = ((currentPrice - basePrice) / basePrice) * 100;
+      const absChange = currentPrice - basePrice;
+      const isUp = pctChange >= 0;
+
+      changePctEl.textContent = (isUp ? '+' : '') + pctChange.toFixed(2) + '%';
+      changePctEl.className = 'price-change-badge ' + (isUp ? 'up' : 'down');
+
+      changeAbsEl.textContent = (isUp ? '+' : '-') + formatCurrency(Math.abs(absChange));
+      changeAbsEl.className = 'price-change-badge ' + (isUp ? 'up' : 'down');
+
+      // Update BTC ticker too
+      const tpBtc = document.getElementById('tp-btc');
+      if (tpBtc) tpBtc.textContent = formatCurrency(currentPrice);
+    }
+
+    // Update other tickers occasionally
+    const tickers = {
+      eth: { el: 'tp-eth', price: 2648.30, range: 8 },
+      sol: { el: 'tp-sol', price: 198.45, range: 2 },
+      hype: { el: 'tp-hype', price: 24.18, range: 0.5 },
+    };
+
+    function tickOther() {
+      Object.values(tickers).forEach(t => {
+        const el = document.getElementById(t.el);
+        if (!el) return;
+        const old = t.price;
+        t.price += (Math.random() - 0.48) * t.range;
+        animateNumber(el, old, t.price, 400, formatCurrency);
+      });
+    }
+
+    // Animate metric values
+    const metricVol = document.getElementById('metricVol');
+    const metricOI = document.getElementById('metricOI');
+    let volValue = 48.2;
+    let oiValue = 18.4;
+
+    function tickMetrics() {
+      const oldVol = volValue;
+      volValue += (Math.random() - 0.45) * 0.3;
+      animateNumber(metricVol, oldVol, volValue, 600, v => formatCompact(v * 1e9));
+
+      const oldOI = oiValue;
+      oiValue += (Math.random() - 0.48) * 0.1;
+      animateNumber(metricOI, oldOI, oiValue, 600, v => formatCompact(v * 1e9));
+    }
+
+    // Start ticking
+    setInterval(tick, 1500);
+    setInterval(tickOther, 2200);
+    setInterval(tickMetrics, 4000);
+  </script>
+</body>
+</html>

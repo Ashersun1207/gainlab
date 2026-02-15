@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GainLab — Skill Demo: frontend-design</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-deep: #06080d;
+    --bg-surface: #0c1018;
+    --accent-cyan: #00f0ff;
+    --accent-green: #39ff8b;
+    --accent-red: #ff3b5c;
+    --accent-gold: #ffd84d;
+    --text-primary: #e8ecf4;
+    --text-muted: #5a6378;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    font-family: var(--font-display);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Grain overlay */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  /* Animated grid background */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    animation: gridPulse 8s ease-in-out infinite;
+  }
+
+  @keyframes gridPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* Gradient orbs */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+  }
+  .orb-1 {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,240,255,0.12), transparent 70%);
+    top: -200px; right: -100px;
+    animation: float1 12s ease-in-out infinite;
+  }
+  .orb-2 {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(57,255,139,0.08), transparent 70%);
+    bottom: -100px; left: -50px;
+    animation: float2 15s ease-in-out infinite;
+  }
+  .orb-3 {
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, rgba(255,216,77,0.06), transparent 70%);
+    top: 40%; left: 30%;
+    animation: float3 10s ease-in-out infinite;
+  }
+
+  @keyframes float1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-40px, 30px); } }
+  @keyframes float2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(30px, -40px); } }
+  @keyframes float3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-20px, -20px); } }
+
+  /* Nav */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 40px;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0,240,255,0.06);
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.4rem;
+    letter-spacing: -0.03em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+  .nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    transition: color 0.3s;
+  }
+  .nav-links a:hover { color: var(--accent-cyan); }
+
+  /* Hero */
+  .hero {
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 max(40px, 8vw);
+  }
+
+  .hero-tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .hero-tag::before {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: var(--accent-cyan);
+  }
+
+  .hero h1 {
+    font-size: clamp(3rem, 8vw, 7rem);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    margin-bottom: 32px;
+  }
+  .hero h1 .gradient-text {
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-green) 50%, var(--accent-gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero h1 .outline-text {
+    -webkit-text-stroke: 1.5px var(--text-muted);
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-desc {
+    max-width: 480px;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    line-height: 1.7;
+    color: var(--text-muted);
+    margin-bottom: 48px;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .btn-primary {
+    padding: 14px 36px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+    color: var(--bg-deep);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  .btn-primary:hover { transform: translateY(-2px); }
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(255,255,255,0.15));
+  }
+
+  .btn-ghost {
+    padding: 14px 36px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .btn-ghost:hover {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+  }
+
+  /* Stats strip */
+  .stats-strip {
+    position: absolute;
+    bottom: 60px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 80px;
+    z-index: 10;
+  }
+  .stat {
+    text-align: center;
+  }
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    letter-spacing: -0.02em;
+  }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Floating chart preview */
+  .chart-preview {
+    position: absolute;
+    right: max(40px, 6vw);
+    top: 50%;
+    transform: translateY(-50%);
+    width: 340px;
+    height: 220px;
+    border: 1px solid rgba(0,240,255,0.1);
+    border-radius: 12px;
+    background: rgba(12,16,24,0.8);
+    backdrop-filter: blur(20px);
+    padding: 20px;
+    animation: chartFloat 6s ease-in-out infinite;
+  }
+  @keyframes chartFloat {
+    0%,100% { transform: translateY(-50%) rotate(0.5deg); }
+    50% { transform: translateY(calc(-50% - 10px)) rotate(-0.5deg); }
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .chart-symbol {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .chart-price {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--accent-green);
+    font-size: 0.85rem;
+  }
+
+  .chart-svg {
+    width: 100%;
+    height: 120px;
+  }
+
+  /* Skill badge */
+  .skill-badge {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    background: rgba(12,16,24,0.9);
+    border: 1px solid rgba(255,255,255,0.05);
+    padding: 6px 12px;
+    border-radius: 4px;
+    z-index: 50;
+  }
+
+  @media (max-width: 900px) {
+    .chart-preview { display: none; }
+    .stats-strip { gap: 40px; }
+  }
+</style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <nav>
+    <div class="logo">
+      <div class="logo-icon">G</div>
+      GainLab
+    </div>
+    <ul class="nav-links">
+      <li><a href="#">Dashboard</a></li>
+      <li><a href="#">Widgets</a></li>
+      <li><a href="#">API</a></li>
+      <li><a href="#">Docs</a></li>
+    </ul>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-tag">Agent-Native Financial Infrastructure</div>
+    <h1>
+      <span class="gradient-text">Derivatives</span><br>
+      <span class="outline-text">Data,</span> <span class="gradient-text">Visualized.</span>
+    </h1>
+    <p class="hero-desc">
+      Real-time CEX & Perp DEX derivatives aggregation. Embeddable widgets.
+      AI Agent APIs. Built for the age of autonomous trading.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-primary">Launch Dashboard →</button>
+      <button class="btn-ghost">View API Docs</button>
+    </div>
+  </section>
+
+  <div class="chart-preview">
+    <div class="chart-header">
+      <span class="chart-symbol">BTC/USDT.P</span>
+      <span class="chart-price">$97,842.50</span>
+    </div>
+    <svg class="chart-svg" viewBox="0 0 300 120" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#00f0ff"/>
+          <stop offset="100%" stop-color="#39ff8b"/>
+        </linearGradient>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#00f0ff" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <path d="M0,80 C20,75 40,60 60,65 C80,70 100,40 120,35 C140,30 160,50 180,45 C200,40 220,25 240,20 C260,15 280,30 300,18"
+            fill="none" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M0,80 C20,75 40,60 60,65 C80,70 100,40 120,35 C140,30 160,50 180,45 C200,40 220,25 240,20 C260,15 280,30 300,18 L300,120 L0,120 Z"
+            fill="url(#areaGrad)"/>
+      <!-- Price dots -->
+      <circle cx="120" cy="35" r="3" fill="#00f0ff" opacity="0.6">
+        <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="300" cy="18" r="4" fill="#39ff8b">
+        <animate attributeName="r" values="4;6;4" dur="1.5s" repeatCount="indefinite"/>
+      </circle>
+    </svg>
+  </div>
+
+  <div class="stats-strip">
+    <div class="stat">
+      <div class="stat-value">$7.3T</div>
+      <div class="stat-label">Perp DEX Volume</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">12+</div>
+      <div class="stat-label">Exchanges</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">&lt;50ms</div>
+      <div class="stat-label">Latency</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">∞</div>
+      <div class="stat-label">Agent Calls</div>
+    </div>
+  </div>
+
+  <div class="skill-badge">Skill: frontend-design (steipete/official)</div>
+</body>
+</html>

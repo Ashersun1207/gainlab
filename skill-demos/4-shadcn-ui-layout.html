@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GainLab — Skill Demo: shadcn-ui</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    /* shadcn/ui dark theme CSS variables */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --radius: 0.5rem;
+    --success: 154 80% 50%;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-body);
+    min-height: 100vh;
+    display: flex;
+  }
+
+  /* Sidebar component */
+  .sidebar {
+    width: 260px;
+    border-right: 1px solid hsl(var(--border));
+    background: hsl(222.2 84% 3.5%);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+  }
+
+  .sidebar-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid hsl(var(--border));
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .sidebar-logo {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg, #00f0ff, #22c55e);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: hsl(var(--background));
+  }
+  .sidebar-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .sidebar-nav {
+    flex: 1;
+    padding: 12px 8px;
+    overflow-y: auto;
+  }
+  .nav-section {
+    margin-bottom: 16px;
+  }
+  .nav-section-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: hsl(var(--muted-foreground));
+    padding: 0 12px;
+    margin-bottom: 6px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+  }
+  .nav-item:hover {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+  .nav-item.active {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+    font-weight: 500;
+  }
+  .nav-icon {
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+  }
+  .nav-badge {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: hsl(var(--secondary));
+    color: hsl(var(--muted-foreground));
+  }
+
+  .sidebar-footer {
+    padding: 12px 8px;
+    border-top: 1px solid hsl(var(--border));
+  }
+  .user-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .user-card:hover { background: hsl(var(--accent)); }
+  .user-avatar {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: hsl(var(--muted));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .user-info {
+    flex: 1;
+  }
+  .user-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .user-plan {
+    font-size: 0.6rem;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Main content */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  /* Header */
+  .top-header {
+    height: 52px;
+    border-bottom: 1px solid hsl(var(--border));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    flex-shrink: 0;
+  }
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: hsl(var(--muted-foreground));
+  }
+  .breadcrumb-current {
+    color: hsl(var(--foreground));
+    font-weight: 500;
+  }
+  .breadcrumb-sep { opacity: 0.4; }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Command palette trigger */
+  .cmd-trigger {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    font-size: 0.75rem;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    transition: border-color 0.2s;
+    min-width: 200px;
+  }
+  .cmd-trigger:hover { border-color: hsl(var(--ring)); }
+  .cmd-trigger .search-icon { opacity: 0.5; }
+  .cmd-kbd {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: hsl(var(--background));
+    border: 1px solid hsl(var(--border));
+  }
+
+  /* Icon button */
+  .icon-btn {
+    width: 32px; height: 32px;
+    border-radius: var(--radius);
+    border: 1px solid hsl(var(--border));
+    background: transparent;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+
+  /* Content area */
+  .content {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+  }
+  .content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .content-header h1 {
+    font-size: 1.3rem;
+    font-weight: 600;
+  }
+  .content-header p {
+    font-size: 0.8rem;
+    color: hsl(var(--muted-foreground));
+    margin-top: 2px;
+  }
+
+  /* Button */
+  .btn {
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.2s;
+    font-family: var(--font-body);
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn-primary {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
+  .btn-secondary {
+    background: hsl(var(--secondary));
+    color: hsl(var(--secondary-foreground));
+    border: 1px solid hsl(var(--border));
+  }
+  .btn-ghost {
+    background: transparent;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Card grid */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) * 1.5);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 16px 16px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: hsl(var(--muted-foreground));
+  }
+  .card-icon {
+    font-size: 0.9rem;
+    opacity: 0.4;
+  }
+  .card-content {
+    padding: 0 16px 16px;
+  }
+  .card-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+  .card-desc {
+    font-size: 0.7rem;
+    color: hsl(var(--muted-foreground));
+    margin-top: 2px;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid hsl(var(--border));
+    margin-bottom: 16px;
+  }
+  .tab {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    color: hsl(var(--muted-foreground));
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: var(--font-body);
+  }
+  .tab:hover { color: hsl(var(--foreground)); }
+  .tab.active {
+    color: hsl(var(--foreground));
+    border-bottom-color: hsl(var(--foreground));
+    font-weight: 500;
+  }
+
+  /* Table */
+  .table-container {
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) * 1.5);
+    overflow: hidden;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+  thead {
+    background: hsl(var(--muted));
+  }
+  th {
+    text-align: left;
+    padding: 10px 16px;
+    font-weight: 500;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: hsl(var(--muted-foreground));
+  }
+  td {
+    padding: 12px 16px;
+    border-top: 1px solid hsl(var(--border));
+  }
+  tr:hover td {
+    background: hsl(var(--accent) / 0.5);
+  }
+  .td-mono {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8rem;
+  }
+
+  /* Badge */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.65rem;
+    font-weight: 500;
+  }
+  .badge-success {
+    background: hsla(var(--success), 0.15);
+    color: hsl(var(--success));
+  }
+  .badge-destructive {
+    background: hsla(0, 62.8%, 30.6%, 0.3);
+    color: hsl(0, 84.2%, 60.2%);
+  }
+  .badge-secondary {
+    background: hsl(var(--secondary));
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* Dropdown menu hint */
+  .dropdown-hint {
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+  .dropdown-hint:hover { opacity: 1; }
+
+  /* Toast demo */
+  .toast-demo {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) * 1.5);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.8rem;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: toastIn 0.4s ease-out;
+    z-index: 100;
+  }
+  @keyframes toastIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .toast-icon { font-size: 1rem; }
+  .toast-close {
+    margin-left: 12px;
+    opacity: 0.4;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: hsl(var(--foreground));
+    font-size: 0.9rem;
+  }
+
+  /* Command palette overlay */
+  .cmd-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 20vh;
+  }
+  .cmd-overlay.open { display: flex; }
+  .cmd-dialog {
+    width: 480px;
+    background: hsl(var(--popover));
+    border: 1px solid hsl(var(--border));
+    border-radius: calc(var(--radius) * 2);
+    overflow: hidden;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+    animation: cmdIn 0.2s ease-out;
+  }
+  @keyframes cmdIn {
+    from { transform: scale(0.96); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .cmd-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid hsl(var(--border));
+    font-size: 0.85rem;
+    color: hsl(var(--foreground));
+    outline: none;
+    font-family: var(--font-body);
+  }
+  .cmd-input::placeholder { color: hsl(var(--muted-foreground)); }
+  .cmd-group {
+    padding: 8px;
+  }
+  .cmd-group-title {
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: hsl(var(--muted-foreground));
+    padding: 6px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .cmd-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .cmd-item:hover { background: hsl(var(--accent)); }
+  .cmd-item-icon { opacity: 0.5; font-size: 0.9rem; }
+
+  .skill-badge {
+    position: fixed;
+    bottom: 68px;
+    right: 20px;
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    color: hsl(var(--muted-foreground));
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    padding: 4px 10px;
+    border-radius: 4px;
+    z-index: 50;
+  }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .card-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">G</div>
+      <span class="sidebar-title">GainLab</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-title">Overview</div>
+        <a class="nav-item active"><span class="nav-icon">📊</span> Dashboard</a>
+        <a class="nav-item"><span class="nav-icon">📈</span> Markets</a>
+        <a class="nav-item"><span class="nav-icon">🔥</span> Heatmap <span class="nav-badge">Live</span></a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Derivatives</div>
+        <a class="nav-item"><span class="nav-icon">📉</span> Perpetuals</a>
+        <a class="nav-item"><span class="nav-icon">💰</span> Funding Rates</a>
+        <a class="nav-item"><span class="nav-icon">📊</span> Open Interest</a>
+        <a class="nav-item"><span class="nav-icon">💥</span> Liquidations <span class="nav-badge">24</span></a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Tools</div>
+        <a class="nav-item"><span class="nav-icon">🤖</span> AI Chat</a>
+        <a class="nav-item"><span class="nav-icon">🔧</span> Widgets</a>
+        <a class="nav-item"><span class="nav-icon">🔗</span> API</a>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Settings</div>
+        <a class="nav-item"><span class="nav-icon">⚙️</span> Preferences</a>
+        <a class="nav-item"><span class="nav-icon">🔑</span> API Keys</a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar">A</div>
+        <div class="user-info">
+          <div class="user-name">Asher</div>
+          <div class="user-plan">Pro Plan</div>
+        </div>
+        <span class="dropdown-hint">⋯</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="main">
+    <header class="top-header">
+      <div class="breadcrumb">
+        <span>GainLab</span>
+        <span class="breadcrumb-sep">/</span>
+        <span class="breadcrumb-current">Dashboard</span>
+      </div>
+
+      <div class="header-actions">
+        <div class="cmd-trigger" id="cmdTrigger">
+          <span class="search-icon">🔍</span>
+          <span>Search or command...</span>
+          <span class="cmd-kbd">⌘K</span>
+        </div>
+        <button class="icon-btn" title="Notifications">🔔</button>
+        <button class="icon-btn" title="Theme">🌙</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="content-header">
+        <div>
+          <h1>Dashboard</h1>
+          <p>Real-time derivatives overview across CEX & Perp DEX</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary">Export</button>
+          <button class="btn btn-primary">+ Add Widget</button>
+        </div>
+      </div>
+
+      <!-- Stats cards -->
+      <div class="card-grid">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Total Volume 24H</span>
+            <span class="card-icon">💹</span>
+          </div>
+          <div class="card-content">
+            <div class="card-value">$48.2B</div>
+            <div class="card-desc">+12.4% from yesterday</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Open Interest</span>
+            <span class="card-icon">📊</span>
+          </div>
+          <div class="card-content">
+            <div class="card-value">$18.4B</div>
+            <div class="card-desc">+3.8% from yesterday</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">24H Liquidations</span>
+            <span class="card-icon">💥</span>
+          </div>
+          <div class="card-content">
+            <div class="card-value">$342M</div>
+            <div class="card-desc">Long: $198M / Short: $144M</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Active Exchanges</span>
+            <span class="card-icon">🏦</span>
+          </div>
+          <div class="card-content">
+            <div class="card-value">12</div>
+            <div class="card-desc">8 CEX + 4 Perp DEX</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table with tabs -->
+      <div class="tabs">
+        <button class="tab active">Top Movers</button>
+        <button class="tab">Funding Rates</button>
+        <button class="tab">Liquidations</button>
+        <button class="tab">New Listings</button>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Pair</th>
+              <th>Exchange</th>
+              <th>Price</th>
+              <th>24H Change</th>
+              <th>Volume</th>
+              <th>OI</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>BTC/USDT.P</strong></td>
+              <td>Binance</td>
+              <td class="td-mono">$97,842.50</td>
+              <td class="td-mono" style="color:hsl(var(--success))">+2.34%</td>
+              <td class="td-mono">$12.4B</td>
+              <td class="td-mono">$8.2B</td>
+              <td><span class="badge badge-success">Active</span></td>
+            </tr>
+            <tr>
+              <td><strong>HYPE/USDT</strong></td>
+              <td>HyperLiquid</td>
+              <td class="td-mono">$24.18</td>
+              <td class="td-mono" style="color:hsl(var(--success))">+12.40%</td>
+              <td class="td-mono">$890M</td>
+              <td class="td-mono">$420M</td>
+              <td><span class="badge badge-success">Active</span></td>
+            </tr>
+            <tr>
+              <td><strong>SOL/USDT.P</strong></td>
+              <td>Bybit</td>
+              <td class="td-mono">$198.45</td>
+              <td class="td-mono" style="color:hsl(var(--success))">+5.67%</td>
+              <td class="td-mono">$3.2B</td>
+              <td class="td-mono">$1.8B</td>
+              <td><span class="badge badge-success">Active</span></td>
+            </tr>
+            <tr>
+              <td><strong>ETH/USDT.P</strong></td>
+              <td>OKX</td>
+              <td class="td-mono">$2,648.30</td>
+              <td class="td-mono" style="color:hsl(0, 84.2%, 60.2%)">-1.52%</td>
+              <td class="td-mono">$6.8B</td>
+              <td class="td-mono">$4.1B</td>
+              <td><span class="badge badge-success">Active</span></td>
+            </tr>
+            <tr>
+              <td><strong>DOGE/USDT.P</strong></td>
+              <td>Binance</td>
+              <td class="td-mono">$0.2845</td>
+              <td class="td-mono" style="color:hsl(0, 84.2%, 60.2%)">-3.21%</td>
+              <td class="td-mono">$1.1B</td>
+              <td class="td-mono">$680M</td>
+              <td><span class="badge badge-secondary">Low Vol</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Command palette -->
+  <div class="cmd-overlay" id="cmdOverlay">
+    <div class="cmd-dialog">
+      <input class="cmd-input" placeholder="Type a command or search..." autofocus id="cmdInput"/>
+      <div class="cmd-group">
+        <div class="cmd-group-title">Navigation</div>
+        <div class="cmd-item"><span class="cmd-item-icon">📊</span> Dashboard</div>
+        <div class="cmd-item"><span class="cmd-item-icon">📈</span> Markets</div>
+        <div class="cmd-item"><span class="cmd-item-icon">🔥</span> Heatmap</div>
+      </div>
+      <div class="cmd-group">
+        <div class="cmd-group-title">Actions</div>
+        <div class="cmd-item"><span class="cmd-item-icon">🤖</span> Ask AI about BTC funding...</div>
+        <div class="cmd-item"><span class="cmd-item-icon">🔧</span> Create Widget</div>
+        <div class="cmd-item"><span class="cmd-item-icon">🔗</span> Generate API Key</div>
+      </div>
+      <div class="cmd-group">
+        <div class="cmd-group-title">Settings</div>
+        <div class="cmd-item"><span class="cmd-item-icon">🌙</span> Toggle Dark Mode</div>
+        <div class="cmd-item"><span class="cmd-item-icon">⚙️</span> Preferences</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast-demo">
+    <span class="toast-icon">✅</span>
+    <span>BTC price alert triggered at $97,800</span>
+    <button class="toast-close" onclick="this.parentElement.style.display='none'">✕</button>
+  </div>
+
+  <div class="skill-badge">Skill: shadcn-ui — Sidebar, Cards, Table, Tabs, Command Palette, Toast, Badges</div>
+
+  <script>
+    // Command palette toggle
+    const cmdOverlay = document.getElementById('cmdOverlay');
+    const cmdTrigger = document.getElementById('cmdTrigger');
+
+    cmdTrigger.addEventListener('click', () => cmdOverlay.classList.add('open'));
+    cmdOverlay.addEventListener('click', (e) => {
+      if (e.target === cmdOverlay) cmdOverlay.classList.remove('open');
+    });
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        cmdOverlay.classList.toggle('open');
+        if (cmdOverlay.classList.contains('open')) {
+          document.getElementById('cmdInput').focus();
+        }
+      }
+      if (e.key === 'Escape') cmdOverlay.classList.remove('open');
+    });
+  </script>
+</body>
+</html>
