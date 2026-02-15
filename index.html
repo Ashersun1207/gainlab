@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GainLab — Agent-Native Financial Visualization</title>
+<meta name="description" content="TradingView Widget + CoinGlass API — built for the AI Agent era. Embeddable financial charts, MCP Server, derivatives data aggregation.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/klinecharts@9.8.10/dist/klinecharts.min.js"></script>
+<style>
+:root{--bg:#0a0e17;--card:#111827;--border:#1e293b;--cyan:#00d4ff;--green:#00ff88;--orange:#ff9f43;--red:#ff4757;--text:#e2e8f0;--muted:#64748b;--glow:0 0 20px rgba(0,212,255,0.15)}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(10,14,23,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px}
+nav .logo{font-size:20px;font-weight:800;background:linear-gradient(135deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+nav .links{display:flex;gap:24px}
+nav .links a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
+nav .links a:hover{color:var(--cyan)}
+nav .cta-btn{background:linear-gradient(135deg,var(--cyan),var(--green));color:#000;padding:8px 20px;border-radius:8px;font-weight:600;font-size:13px;text-decoration:none;transition:transform .2s,box-shadow .2s}
+nav .cta-btn:hover{transform:translateY(-1px);box-shadow:var(--glow)}
+
+/* Hero */
+.hero{padding:120px 24px 60px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse,rgba(0,212,255,0.08),transparent 70%);pointer-events:none}
+.hero h1{font-size:clamp(36px,6vw,64px);font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
+.hero .sub{font-size:clamp(16px,2.5vw,22px);color:var(--muted);margin-bottom:32px;max-width:700px;margin-left:auto;margin-right:auto}
+.hero .badge{display:inline-block;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.25);color:var(--cyan);padding:8px 24px;border-radius:99px;font-size:14px;font-weight:500}
+.hero .hero-btns{margin-top:32px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.hero .hero-btns a{padding:12px 32px;border-radius:10px;font-weight:600;text-decoration:none;font-size:15px;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,var(--cyan),var(--green));color:#000}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 4px 24px rgba(0,212,255,0.3)}
+.btn-secondary{border:1px solid var(--border);color:var(--text);background:transparent}
+.btn-secondary:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* Section */
+.section{max-width:1100px;margin:0 auto;padding:80px 24px}
+.section-title{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:8px}
+.section-sub{color:var(--muted);font-size:16px;margin-bottom:40px;max-width:600px}
+.highlight{color:var(--cyan)}
+
+/* Live Chart */
+#chart-container{width:100%;height:420px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative}
+.chart-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.chart-header .pair{font-weight:700;font-size:18px}
+.chart-header .price{color:var(--green);font-weight:600}
+.chart-tabs{display:flex;gap:4px}
+.chart-tabs button{background:transparent;border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;transition:all .15s}
+.chart-tabs button.active,.chart-tabs button:hover{border-color:var(--cyan);color:var(--cyan);background:rgba(0,212,255,0.08)}
+#kline-chart{width:100%;height:360px}
+
+/* Heatmap */
+.heatmap-wrap{margin-top:24px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.heatmap-title{padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px}
+.heatmap-title .live-dot{width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.heatmap-grid{display:grid;grid-template-columns:120px repeat(8,1fr);font-size:12px}
+.heatmap-cell{padding:10px 8px;text-align:center;border-bottom:1px solid var(--border);border-right:1px solid var(--border);transition:all .3s;cursor:pointer;position:relative}
+.heatmap-cell:hover{transform:scale(1.05);z-index:2;box-shadow:0 0 12px rgba(0,212,255,0.2)}
+.heatmap-cell.header{color:var(--muted);font-weight:600;background:rgba(30,41,59,0.5)}
+.heatmap-cell.exchange{color:var(--text);font-weight:600;text-align:left;padding-left:12px}
+.heatmap-tooltip{display:none;position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);background:#1e293b;border:1px solid var(--cyan);border-radius:8px;padding:8px 12px;font-size:11px;white-space:nowrap;z-index:10;color:var(--text)}
+.heatmap-cell:hover .heatmap-tooltip{display:block}
+
+/* Widget Demo */
+.widget-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.widget-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden}
+.widget-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--cyan),var(--green));opacity:0;transition:opacity .25s}
+.widget-card:hover{border-color:var(--cyan);transform:translateY(-4px);box-shadow:var(--glow)}
+.widget-card:hover::before{opacity:1}
+.widget-card .icon{font-size:32px;margin-bottom:12px}
+.widget-card h4{font-size:17px;font-weight:700;margin-bottom:6px}
+.widget-card p{color:var(--muted);font-size:13px;line-height:1.5}
+.widget-card .status{margin-top:12px;display:inline-block;font-size:11px;padding:3px 10px;border-radius:99px;font-weight:600}
+.status-live{background:rgba(0,255,136,0.1);color:var(--green)}
+.status-soon{background:rgba(255,159,67,0.1);color:var(--orange)}
+
+/* Embed demo */
+.embed-demo{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.embed-tabs{display:flex;border-bottom:1px solid var(--border)}
+.embed-tabs button{flex:1;padding:12px;background:transparent;border:none;color:var(--muted);font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;border-bottom:2px solid transparent}
+.embed-tabs button.active{color:var(--cyan);border-bottom-color:var(--cyan);background:rgba(0,212,255,0.04)}
+.embed-content{padding:20px}
+.code-block{background:#060a12;border:1px solid var(--border);border-radius:8px;padding:16px;font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--green);overflow-x:auto;white-space:pre;line-height:1.7;position:relative}
+.code-block .copy-btn{position:absolute;top:8px;right:8px;background:var(--border);border:none;color:var(--muted);padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-family:'Inter',sans-serif;transition:all .2s}
+.code-block .copy-btn:hover{background:var(--cyan);color:#000}
+
+/* MCP Demo */
+.mcp-terminal{background:#060a12;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.mcp-bar{background:var(--card);padding:8px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.mcp-dot{width:10px;height:10px;border-radius:50%}
+.mcp-body{padding:20px;font-family:'JetBrains Mono',monospace;font-size:13px;min-height:300px;line-height:1.8}
+.mcp-line{opacity:0;transform:translateY(8px);transition:all .4s}
+.mcp-line.visible{opacity:1;transform:translateY(0)}
+.mcp-prompt{color:var(--cyan)}
+.mcp-tool{color:var(--orange)}
+.mcp-response{color:var(--green)}
+.mcp-comment{color:var(--muted)}
+.mcp-btn{display:inline-block;margin-top:16px;padding:10px 24px;background:linear-gradient(135deg,var(--cyan),var(--green));color:#000;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:14px;font-family:'Inter',sans-serif;transition:all .2s}
+.mcp-btn:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,212,255,0.3)}
+
+/* Pricing */
+.price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.price-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;text-align:center;transition:all .25s}
+.price-card.featured{border-color:var(--cyan);position:relative}
+.price-card.featured::before{content:'POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--cyan),var(--green));color:#000;padding:4px 16px;border-radius:99px;font-size:11px;font-weight:700}
+.price-card:hover{transform:translateY(-4px);box-shadow:var(--glow)}
+.price-card h4{font-size:20px;font-weight:700;margin-bottom:4px}
+.price-card .price{font-size:36px;font-weight:900;color:var(--cyan);margin:12px 0}
+.price-card .price span{font-size:14px;color:var(--muted);font-weight:400}
+.price-card ul{list-style:none;text-align:left;margin-top:16px}
+.price-card ul li{padding:6px 0;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.price-card ul li::before{content:'✓';color:var(--green);font-weight:700}
+
+/* Roadmap */
+.roadmap{position:relative}
+.roadmap::before{content:'';position:absolute;left:20px;top:0;bottom:0;width:2px;background:var(--border)}
+.roadmap-item{position:relative;padding-left:52px;margin-bottom:32px}
+.roadmap-item .dot{position:absolute;left:12px;top:4px;width:18px;height:18px;border-radius:50%;border:3px solid var(--cyan);background:var(--bg)}
+.roadmap-item.done .dot{background:var(--cyan)}
+.roadmap-item h4{font-size:16px;font-weight:700;margin-bottom:4px}
+.roadmap-item p{color:var(--muted);font-size:14px}
+.roadmap-item .tag{display:inline-block;margin-top:6px;font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600}
+.tag-weeks{background:rgba(0,212,255,0.1);color:var(--cyan)}
+
+/* Footer */
+footer{text-align:center;padding:60px 24px 40px;border-top:1px solid var(--border);color:var(--muted);font-size:13px}
+footer .logo-big{font-size:28px;font-weight:900;background:linear-gradient(135deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:8px}
+
+/* Responsive */
+@media(max-width:768px){
+  nav .links{display:none}
+  .heatmap-grid{font-size:10px}
+  .price-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">GainLab</div>
+  <div class="links">
+    <a href="#chart">Live Chart</a>
+    <a href="#widgets">Widgets</a>
+    <a href="#integrate">Integrate</a>
+    <a href="#mcp">MCP</a>
+    <a href="#pricing">Pricing</a>
+  </div>
+  <a href="#pricing" class="cta-btn">Get Started</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <h1>GainLab</h1>
+  <p class="sub">Agent-Native Financial Visualization Infrastructure</p>
+  <div class="badge">TradingView Widget + CoinGlass API — built for the AI Agent era</div>
+  <div class="hero-btns">
+    <a href="#chart" class="btn-primary">See Live Demo ↓</a>
+    <a href="#mcp" class="btn-secondary">MCP Server →</a>
+  </div>
+</section>
+
+<!-- Live Chart Demo -->
+<section class="section" id="chart">
+  <h2 class="section-title">📈 Live <span class="highlight">Interactive</span> Chart</h2>
+  <p class="section-sub">Real KLineChart rendering. Hover, zoom, drag — just like the real thing.</p>
+  
+  <div id="chart-container">
+    <div class="chart-header">
+      <div>
+        <span class="pair">BTC/USDT</span>
+        <span class="price" id="live-price">$97,342.50</span>
+      </div>
+      <div class="chart-tabs" id="tf-tabs">
+        <button data-tf="1m">1m</button>
+        <button data-tf="5m">5m</button>
+        <button data-tf="15m">15m</button>
+        <button data-tf="1h" class="active">1H</button>
+        <button data-tf="4h">4H</button>
+        <button data-tf="1d">1D</button>
+      </div>
+    </div>
+    <div id="kline-chart"></div>
+  </div>
+
+  <!-- Funding Heatmap -->
+  <div class="heatmap-wrap" id="heatmap">
+    <div class="heatmap-title">
+      <span class="live-dot"></span>
+      Funding Rate Heatmap — Click any cell for details
+    </div>
+    <div class="heatmap-grid" id="heatmap-grid"></div>
+  </div>
+</section>
+
+<!-- Widgets -->
+<section class="section" id="widgets">
+  <h2 class="section-title">📊 Widget <span class="highlight">Gallery</span></h2>
+  <p class="section-sub">Drop-in components. Embed anywhere with one line of code.</p>
+  
+  <div class="widget-grid">
+    <div class="widget-card" onclick="highlightWidget(this)">
+      <div class="icon">📈</div>
+      <h4>K-Line Pro</h4>
+      <p>Multi-timeframe candlestick with 45+ technical indicators, drawing tools, and real-time updates.</p>
+      <span class="status status-live">● LIVE DEMO ABOVE</span>
+    </div>
+    <div class="widget-card" onclick="highlightWidget(this)">
+      <div class="icon">🔥</div>
+      <h4>Funding Heatmap</h4>
+      <p>Real-time funding rates across CEX + DEX. Color-coded anomaly detection. Arbitrage opportunities at a glance.</p>
+      <span class="status status-live">● LIVE DEMO ABOVE</span>
+    </div>
+    <div class="widget-card" onclick="highlightWidget(this)">
+      <div class="icon">💧</div>
+      <h4>Liquidation Waterfall</h4>
+      <p>Cascading liquidation levels with volume clusters and price impact zones. See where the squeezes hide.</p>
+      <span class="status status-soon">◐ COMING SOON</span>
+    </div>
+    <div class="widget-card" onclick="highlightWidget(this)">
+      <div class="icon">📊</div>
+      <h4>Open Interest Dashboard</h4>
+      <p>OI changes across timeframes, long/short ratios, whale position tracking, and funding-OI divergence alerts.</p>
+      <span class="status status-soon">◐ COMING SOON</span>
+    </div>
+    <div class="widget-card" onclick="highlightWidget(this)">
+      <div class="icon">⚡</div>
+      <h4>Basis Spread Monitor</h4>
+      <p>Spot-futures basis across exchanges. Automated arbitrage opportunity detection with historical context.</p>
+      <span class="status status-soon">◐ COMING SOON</span>
+    </div>
+    <div class="widget-card" onclick="highlightWidget(this)">
+      <div class="icon">🌊</div>
+      <h4>Market Flow</h4>
+      <p>Order flow visualization, trade tape analysis, buy/sell pressure heatmaps, and large order detection.</p>
+      <span class="status status-soon">◐ COMING SOON</span>
+    </div>
+  </div>
+</section>
+
+<!-- Integration -->
+<section class="section" id="integrate">
+  <h2 class="section-title">🔌 Integrate in <span class="highlight">3 Lines</span></h2>
+  <p class="section-sub">Embed financial charts like YouTube embeds videos.</p>
+  
+  <div class="embed-demo">
+    <div class="embed-tabs">
+      <button class="active" onclick="switchTab(this,'iframe')">HTML iframe</button>
+      <button onclick="switchTab(this,'react')">React</button>
+      <button onclick="switchTab(this,'vue')">Vue</button>
+      <button onclick="switchTab(this,'api')">REST API</button>
+    </div>
+    <div class="embed-content">
+      <div class="code-block" id="code-display">
+        <button class="copy-btn" onclick="copyCode()">Copy</button>
+<span id="code-text">&lt;!-- Embed GainLab chart anywhere --&gt;
+&lt;iframe
+  src="https://gainlab.ai/widget/funding-heatmap
+       ?theme=dark&amp;exchanges=binance,hyperliquid"
+  width="600"
+  height="400"
+  frameborder="0"
+&gt;&lt;/iframe&gt;</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- MCP Demo -->
+<section class="section" id="mcp">
+  <h2 class="section-title">🤖 MCP Server — <span class="highlight">Agent-Native</span></h2>
+  <p class="section-sub">AI Agents call GainLab tools. Get structured data + interactive chart URLs.</p>
+  
+  <div class="mcp-terminal">
+    <div class="mcp-bar">
+      <div class="mcp-dot" style="background:#ff5f57"></div>
+      <div class="mcp-dot" style="background:#ffbd2e"></div>
+      <div class="mcp-dot" style="background:#28c840"></div>
+      <span style="color:var(--muted);font-size:12px;margin-left:8px">MCP Terminal — gainlab-server</span>
+    </div>
+    <div class="mcp-body" id="mcp-body">
+      <!-- Lines will be injected by JS -->
+    </div>
+    <div style="padding:0 20px 20px">
+      <button class="mcp-btn" id="mcp-run-btn" onclick="runMcpDemo()">▶ Run Demo</button>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section class="section" id="pricing">
+  <h2 class="section-title">💰 <span class="highlight">Pricing</span></h2>
+  <p class="section-sub">Start free. Scale when you need to.</p>
+  
+  <div class="price-grid">
+    <div class="price-card">
+      <h4>Free</h4>
+      <div class="price">$0</div>
+      <ul>
+        <li>Basic charts (watermarked)</li>
+        <li>15-min delayed data</li>
+        <li>100 API calls/day</li>
+        <li>Community support</li>
+      </ul>
+    </div>
+    <div class="price-card featured">
+      <h4>Pro</h4>
+      <div class="price">$29<span>/mo</span></div>
+      <ul>
+        <li>All widgets, no watermark</li>
+        <li>Real-time data</li>
+        <li>10K API calls/day</li>
+        <li>MCP Server access</li>
+        <li>Priority support</li>
+      </ul>
+    </div>
+    <div class="price-card">
+      <h4>Business</h4>
+      <div class="price">$99<span>/mo</span></div>
+      <ul>
+        <li>White-label widgets</li>
+        <li>100K API calls/day</li>
+        <li>Custom branding</li>
+        <li>Webhook alerts</li>
+        <li>Dedicated support</li>
+      </ul>
+    </div>
+    <div class="price-card">
+      <h4>Enterprise</h4>
+      <div class="price">$299<span>/mo</span></div>
+      <ul>
+        <li>Unlimited API calls</li>
+        <li>Raw data feeds</li>
+        <li>Custom widgets</li>
+        <li>SLA guarantee</li>
+        <li>On-call support</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Roadmap -->
+<section class="section" id="roadmap">
+  <h2 class="section-title">🏁 MVP <span class="highlight">Roadmap</span></h2>
+  <div class="roadmap">
+    <div class="roadmap-item">
+      <div class="dot"></div>
+      <h4>Phase 0 — MCP Server + REST API</h4>
+      <p>5 core tools: funding rates, OI, liquidations, K-line, basis spread</p>
+      <span class="tag tag-weeks">2 weeks</span>
+    </div>
+    <div class="roadmap-item">
+      <div class="dot"></div>
+      <h4>Phase 1 — 3 Core Widgets</h4>
+      <p>K-Line Pro, Funding Heatmap, Open Interest Dashboard — embeddable iframe + React</p>
+      <span class="tag tag-weeks">4 weeks</span>
+    </div>
+    <div class="roadmap-item">
+      <div class="dot"></div>
+      <h4>Phase 2 — gainlab.ai Website + Embed System</h4>
+      <p>Public-facing site, widget gallery, embed configurator, user accounts</p>
+      <span class="tag tag-weeks">6 weeks</span>
+    </div>
+    <div class="roadmap-item">
+      <div class="dot"></div>
+      <h4>Phase 3 — Perp DEX Data Pipeline</h4>
+      <p>Hyperliquid, dYdX, Drift, GMX on-chain data. The $7.348T market gap.</p>
+      <span class="tag tag-weeks">8 weeks</span>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="logo-big">GainLab</div>
+  <p>Financial data infrastructure for the Agent era</p>
+  <p style="margin-top:8px">Built with 🦞 • 2026</p>
+</footer>
+
+<script>
+// ===== KLineChart =====
+const chart = klinecharts.init('kline-chart', {
+  styles: {
+    grid: { show: true, horizontal: { color: '#1e293b40' }, vertical: { color: '#1e293b40' } },
+    candle: {
+      priceMark: { last: { text: { color: '#fff', background: '#00d4ff' } } },
+      bar: { upColor: '#00ff88', downColor: '#ff4757', upBorderColor: '#00ff88', downBorderColor: '#ff4757', upWickColor: '#00ff8880', downWickColor: '#ff475780' },
+      tooltip: { text: { color: '#e2e8f0' } }
+    },
+    indicator: { tooltip: { text: { color: '#e2e8f0' } } },
+    xAxis: { tickText: { color: '#64748b' } },
+    yAxis: { tickText: { color: '#64748b' } },
+    separator: { color: '#1e293b' },
+    crosshair: { horizontal: { line: { color: '#00d4ff40' } }, vertical: { line: { color: '#00d4ff40' } } }
+  }
+});
+
+// Generate realistic BTC data
+function generateKlineData(count = 200) {
+  const data = [];
+  let basePrice = 94000 + Math.random() * 4000;
+  let baseTime = Date.now() - count * 3600000;
+  let volume = 500 + Math.random() * 1000;
+
+  for (let i = 0; i < count; i++) {
+    const change = (Math.random() - 0.48) * 800;
+    const open = basePrice;
+    const close = open + change;
+    const high = Math.max(open, close) + Math.random() * 400;
+    const low = Math.min(open, close) - Math.random() * 400;
+    volume = Math.max(100, volume + (Math.random() - 0.5) * 300);
+
+    data.push({
+      timestamp: baseTime + i * 3600000,
+      open: +open.toFixed(2),
+      high: +high.toFixed(2),
+      low: +low.toFixed(2),
+      close: +close.toFixed(2),
+      volume: +volume.toFixed(0)
+    });
+    basePrice = close;
+  }
+  return data;
+}
+
+const klineData = generateKlineData();
+chart.applyNewData(klineData);
+chart.createIndicator('VOL', false, { id: 'candle_pane' });
+chart.createIndicator('MA', true, { id: 'candle_pane' });
+
+// Update price display
+const lastPrice = klineData[klineData.length - 1].close;
+document.getElementById('live-price').textContent = '$' + lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2 });
+
+// Simulate live updates
+setInterval(() => {
+  const last = klineData[klineData.length - 1];
+  const tick = (Math.random() - 0.48) * 50;
+  last.close = +(last.close + tick).toFixed(2);
+  last.high = Math.max(last.high, last.close);
+  last.low = Math.min(last.low, last.close);
+  last.volume += Math.floor(Math.random() * 10);
+  chart.updateData(last);
+  document.getElementById('live-price').textContent = '$' + last.close.toLocaleString('en-US', { minimumFractionDigits: 2 });
+  document.getElementById('live-price').style.color = tick >= 0 ? '#00ff88' : '#ff4757';
+}, 1500);
+
+// Timeframe tabs
+document.querySelectorAll('.chart-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.chart-tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    chart.applyNewData(generateKlineData());
+  });
+});
+
+// ===== Funding Heatmap =====
+const exchanges = ['Binance', 'OKX', 'Bybit', 'Hyperliquid', 'dYdX', 'Drift'];
+const symbols = ['BTC', 'ETH', 'SOL', 'ARB', 'DOGE', 'AVAX', 'LINK', 'OP'];
+
+function genRate() {
+  return ((Math.random() - 0.4) * 0.06).toFixed(4);
+}
+
+function rateColor(r) {
+  const v = parseFloat(r);
+  if (v > 0.02) return 'rgba(255,71,87,0.7)';
+  if (v > 0.01) return 'rgba(255,71,87,0.4)';
+  if (v > 0) return 'rgba(255,71,87,0.15)';
+  if (v > -0.01) return 'rgba(0,255,136,0.15)';
+  if (v > -0.02) return 'rgba(0,255,136,0.4)';
+  return 'rgba(0,255,136,0.7)';
+}
+
+function buildHeatmap() {
+  const grid = document.getElementById('heatmap-grid');
+  grid.innerHTML = '';
+  // Header row
+  const corner = document.createElement('div');
+  corner.className = 'heatmap-cell header';
+  corner.textContent = 'Exchange';
+  grid.appendChild(corner);
+  symbols.forEach(s => {
+    const h = document.createElement('div');
+    h.className = 'heatmap-cell header';
+    h.textContent = s;
+    grid.appendChild(h);
+  });
+  // Data rows
+  exchanges.forEach(ex => {
+    const label = document.createElement('div');
+    label.className = 'heatmap-cell exchange';
+    label.textContent = ex;
+    grid.appendChild(label);
+    symbols.forEach(sym => {
+      const rate = genRate();
+      const cell = document.createElement('div');
+      cell.className = 'heatmap-cell';
+      cell.style.background = rateColor(rate);
+      cell.textContent = rate + '%';
+      cell.style.color = parseFloat(rate) >= 0 ? '#ff8a80' : '#69f0ae';
+      cell.style.fontWeight = '600';
+      cell.style.fontFamily = "'JetBrains Mono',monospace";
+      // Tooltip
+      const tip = document.createElement('div');
+      tip.className = 'heatmap-tooltip';
+      tip.innerHTML = `<strong>${ex} — ${sym}/USDT</strong><br>Funding: ${rate}%<br>Next in: ${Math.floor(Math.random()*8)}h ${Math.floor(Math.random()*60)}m<br>24h Avg: ${(parseFloat(rate)*0.8).toFixed(4)}%`;
+      cell.appendChild(tip);
+      grid.appendChild(cell);
+    });
+  });
+}
+buildHeatmap();
+
+// Refresh heatmap every 5s
+setInterval(() => {
+  const cells = document.querySelectorAll('.heatmap-cell:not(.header):not(.exchange)');
+  cells.forEach(cell => {
+    const rate = genRate();
+    cell.style.background = rateColor(rate);
+    cell.childNodes[0].textContent = rate + '%';
+    cell.style.color = parseFloat(rate) >= 0 ? '#ff8a80' : '#69f0ae';
+  });
+}, 5000);
+
+// ===== Widget Card Highlight =====
+function highlightWidget(el) {
+  document.querySelectorAll('.widget-card').forEach(c => c.style.borderColor = '');
+  el.style.borderColor = 'var(--cyan)';
+}
+
+// ===== Embed Code Tabs =====
+const codeSnippets = {
+  iframe: `&lt;!-- Embed GainLab chart anywhere --&gt;
+&lt;iframe
+  src="https://gainlab.ai/widget/funding-heatmap
+       ?theme=dark&amp;exchanges=binance,hyperliquid"
+  width="600"
+  height="400"
+  frameborder="0"
+&gt;&lt;/iframe&gt;`,
+  react: `import { FundingHeatmap, KLinePro } from '@gainlab/widgets'
+
+function Dashboard() {
+  return (
+    &lt;div className="grid grid-cols-2"&gt;
+      &lt;KLinePro
+        symbol="BTC/USDT"
+        interval="1h"
+        indicators={['MA', 'VOL', 'RSI']}
+        theme="dark"
+      /&gt;
+      &lt;FundingHeatmap
+        exchanges={['binance', 'hyperliquid', 'drift']}
+        symbols={['BTC', 'ETH', 'SOL']}
+        theme="dark"
+      /&gt;
+    &lt;/div&gt;
+  )
+}`,
+  vue: `&lt;template&gt;
+  &lt;div class="dashboard"&gt;
+    &lt;GainLabChart
+      symbol="BTC/USDT"
+      :interval="'1h'"
+      :indicators="['MA', 'VOL']"
+      theme="dark"
+    /&gt;
+    &lt;GainLabHeatmap
+      :exchanges="['binance', 'hyperliquid']"
+      theme="dark"
+    /&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script setup&gt;
+import { GainLabChart, GainLabHeatmap } from '@gainlab/vue'
+&lt;/script&gt;`,
+  api: `# REST API — get funding rates
+curl https://api.gainlab.ai/v1/funding-rates \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -d '{"symbols": ["BTC","ETH","SOL"],
+       "exchanges": ["binance","hyperliquid","dydx"]}'
+
+# Response
+{
+  "data": [
+    { "symbol": "BTC", "exchange": "binance",
+      "rate": 0.0125, "next_funding": "2026-02-15T08:00:00Z" },
+    { "symbol": "BTC", "exchange": "hyperliquid",
+      "rate": 0.0210, "next_funding": "2026-02-15T08:00:00Z" }
+  ],
+  "chart_url": "https://gainlab.ai/c/fr-btc-2026"
+}`
+};
+
+function switchTab(btn, tab) {
+  document.querySelectorAll('.embed-tabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('code-text').innerHTML = codeSnippets[tab];
+}
+
+function copyCode() {
+  const text = document.getElementById('code-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// ===== MCP Terminal Demo =====
+const mcpLines = [
+  { type: 'comment', text: '# User asks their AI Agent about BTC derivatives' },
+  { type: 'prompt', text: '> "What\'s the BTC derivatives situation right now?"' },
+  { type: 'comment', text: '' },
+  { type: 'comment', text: '# Agent calls GainLab MCP Server' },
+  { type: 'tool', text: '→ tool_call: gainlab.get_funding_rates' },
+  { type: 'tool', text: '  params: { symbols: ["BTC"], exchanges: ["all"] }' },
+  { type: 'comment', text: '' },
+  { type: 'response', text: '← {' },
+  { type: 'response', text: '    "BTC/USDT": [' },
+  { type: 'response', text: '      { "exchange": "Binance",     "rate": "+0.0125%", "oi": "$8.2B" },' },
+  { type: 'response', text: '      { "exchange": "Hyperliquid", "rate": "+0.0210%", "oi": "$2.1B" },' },
+  { type: 'response', text: '      { "exchange": "dYdX",        "rate": "+0.0089%", "oi": "$890M" }' },
+  { type: 'response', text: '    ],' },
+  { type: 'response', text: '    "chart_url": "https://gainlab.ai/c/fr-btc-live",' },
+  { type: 'response', text: '    "embed_html": "<iframe src=\\"...\\" />"' },
+  { type: 'response', text: '  }' },
+  { type: 'comment', text: '' },
+  { type: 'comment', text: '# Agent responds with analysis + interactive chart' },
+  { type: 'prompt', text: '🤖 "BTC funding rates are elevated — longs are crowded.' },
+  { type: 'prompt', text: '    Hyperliquid 0.021% is 68% above Binance.' },
+  { type: 'prompt', text: '    Risk of long squeeze if price dips below $96K."' },
+  { type: 'comment', text: '' },
+  { type: 'tool', text: '📊 [Interactive Funding Heatmap] ← click to explore' },
+];
+
+let mcpRunning = false;
+function runMcpDemo() {
+  if (mcpRunning) return;
+  mcpRunning = true;
+  const body = document.getElementById('mcp-body');
+  const btn = document.getElementById('mcp-run-btn');
+  body.innerHTML = '';
+  btn.textContent = '⏳ Running...';
+  btn.style.opacity = '0.6';
+
+  mcpLines.forEach((line, i) => {
+    setTimeout(() => {
+      const div = document.createElement('div');
+      div.className = 'mcp-line';
+      if (line.type === 'comment') div.innerHTML = `<span class="mcp-comment">${line.text}</span>`;
+      else if (line.type === 'prompt') div.innerHTML = `<span class="mcp-prompt">${line.text}</span>`;
+      else if (line.type === 'tool') div.innerHTML = `<span class="mcp-tool">${line.text}</span>`;
+      else div.innerHTML = `<span class="mcp-response">${line.text}</span>`;
+      body.appendChild(div);
+      requestAnimationFrame(() => div.classList.add('visible'));
+      body.scrollTop = body.scrollHeight;
+
+      if (i === mcpLines.length - 1) {
+        setTimeout(() => {
+          btn.textContent = '▶ Run Again';
+          btn.style.opacity = '1';
+          mcpRunning = false;
+        }, 500);
+      }
+    }, i * 180);
+  });
+}
+
+// Auto-run MCP demo when scrolled into view
+const mcpObserver = new IntersectionObserver((entries) => {
+  if (entries[0].isIntersecting && !mcpRunning) {
+    runMcpDemo();
+    mcpObserver.disconnect();
+  }
+}, { threshold: 0.3 });
+mcpObserver.observe(document.getElementById('mcp'));
+
+// Smooth scroll for nav
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
+</body>
+</html>
