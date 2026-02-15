@@ -166,7 +166,7 @@ footer .logo-big{font-size:28px;font-weight:900;background:linear-gradient(135de
 <!-- Live Chart Demo -->
 <section class="section" id="chart">
   <h2 class="section-title">📈 Live <span class="highlight">Interactive</span> Chart</h2>
-  <p class="section-sub">Real KLineChart rendering. Hover, zoom, drag — just like the real thing.</p>
+  <p class="section-sub">Real-time BTC/USDT from Binance Futures. Hover, zoom, drag. WebSocket live feed.</p>
   
   <div id="chart-container">
     <div class="chart-header">
@@ -190,7 +190,7 @@ footer .logo-big{font-size:28px;font-weight:900;background:linear-gradient(135de
   <div class="heatmap-wrap" id="heatmap">
     <div class="heatmap-title">
       <span class="live-dot"></span>
-      Funding Rate Heatmap — Click any cell for details
+      Funding Rate Heatmap — LIVE from Binance, OKX, Bybit, Hyperliquid
     </div>
     <div class="heatmap-grid" id="heatmap-grid"></div>
   </div>
@@ -396,133 +396,250 @@ const chart = klinecharts.init('kline-chart', {
   }
 });
 
-// Generate realistic BTC data
-function generateKlineData(count = 200) {
-  const data = [];
-  let basePrice = 94000 + Math.random() * 4000;
-  let baseTime = Date.now() - count * 3600000;
-  let volume = 500 + Math.random() * 1000;
+chart.createIndicator('VOL', false, { id: 'candle_pane' });
+chart.createIndicator('MA', true, { id: 'candle_pane' });
 
+// ===== Real Data: Binance Futures API =====
+const intervalMap = { '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h', '4h': '4h', '1d': '1d' };
+let currentSymbol = 'BTCUSDT';
+let currentInterval = '1h';
+let liveWs = null;
+
+async function loadKlineData(symbol, interval) {
+  try {
+    const resp = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=500`);
+    const raw = await resp.json();
+    const data = raw.map(k => ({
+      timestamp: k[0],
+      open: parseFloat(k[1]),
+      high: parseFloat(k[2]),
+      low: parseFloat(k[3]),
+      close: parseFloat(k[4]),
+      volume: parseFloat(k[5])
+    }));
+    chart.applyNewData(data);
+    if (data.length > 0) {
+      const last = data[data.length - 1];
+      updatePriceDisplay(last.close, last.close >= last.open);
+    }
+    // Start WebSocket for live updates
+    connectWs(symbol, interval);
+  } catch (e) {
+    console.warn('Binance API failed, using demo data', e);
+    chart.applyNewData(generateFallbackData());
+  }
+}
+
+function updatePriceDisplay(price, isUp) {
+  const el = document.getElementById('live-price');
+  el.textContent = '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  el.style.color = isUp ? '#00ff88' : '#ff4757';
+}
+
+function connectWs(symbol, interval) {
+  if (liveWs) { liveWs.close(); liveWs = null; }
+  const wsUrl = `wss://fstream.binance.com/ws/${symbol.toLowerCase()}@kline_${interval}`;
+  liveWs = new WebSocket(wsUrl);
+  liveWs.onmessage = (evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.k) {
+      const k = msg.k;
+      const bar = {
+        timestamp: k.t,
+        open: parseFloat(k.o),
+        high: parseFloat(k.h),
+        low: parseFloat(k.l),
+        close: parseFloat(k.c),
+        volume: parseFloat(k.v)
+      };
+      chart.updateData(bar);
+      updatePriceDisplay(bar.close, bar.close >= bar.open);
+    }
+  };
+  liveWs.onerror = () => console.warn('WS error');
+}
+
+function generateFallbackData(count = 200) {
+  const data = []; let p = 69000 + Math.random() * 2000; let t = Date.now() - count * 3600000;
   for (let i = 0; i < count; i++) {
-    const change = (Math.random() - 0.48) * 800;
-    const open = basePrice;
-    const close = open + change;
-    const high = Math.max(open, close) + Math.random() * 400;
-    const low = Math.min(open, close) - Math.random() * 400;
-    volume = Math.max(100, volume + (Math.random() - 0.5) * 300);
-
-    data.push({
-      timestamp: baseTime + i * 3600000,
-      open: +open.toFixed(2),
-      high: +high.toFixed(2),
-      low: +low.toFixed(2),
-      close: +close.toFixed(2),
-      volume: +volume.toFixed(0)
-    });
-    basePrice = close;
+    const c = (Math.random() - 0.48) * 800; const o = p; const cl = o + c;
+    data.push({ timestamp: t + i * 3600000, open: +o.toFixed(2), high: +(Math.max(o, cl) + Math.random() * 400).toFixed(2), low: +(Math.min(o, cl) - Math.random() * 400).toFixed(2), close: +cl.toFixed(2), volume: Math.floor(500 + Math.random() * 1000) });
+    p = cl;
   }
   return data;
 }
 
-const klineData = generateKlineData();
-chart.applyNewData(klineData);
-chart.createIndicator('VOL', false, { id: 'candle_pane' });
-chart.createIndicator('MA', true, { id: 'candle_pane' });
+// Load real data on start
+loadKlineData(currentSymbol, currentInterval);
 
-// Update price display
-const lastPrice = klineData[klineData.length - 1].close;
-document.getElementById('live-price').textContent = '$' + lastPrice.toLocaleString('en-US', { minimumFractionDigits: 2 });
-
-// Simulate live updates
-setInterval(() => {
-  const last = klineData[klineData.length - 1];
-  const tick = (Math.random() - 0.48) * 50;
-  last.close = +(last.close + tick).toFixed(2);
-  last.high = Math.max(last.high, last.close);
-  last.low = Math.min(last.low, last.close);
-  last.volume += Math.floor(Math.random() * 10);
-  chart.updateData(last);
-  document.getElementById('live-price').textContent = '$' + last.close.toLocaleString('en-US', { minimumFractionDigits: 2 });
-  document.getElementById('live-price').style.color = tick >= 0 ? '#00ff88' : '#ff4757';
-}, 1500);
-
-// Timeframe tabs
+// Timeframe tabs - load real data
 document.querySelectorAll('.chart-tabs button').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.chart-tabs button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    chart.applyNewData(generateKlineData());
+    currentInterval = btn.dataset.tf;
+    loadKlineData(currentSymbol, currentInterval);
   });
 });
 
-// ===== Funding Heatmap =====
-const exchanges = ['Binance', 'OKX', 'Bybit', 'Hyperliquid', 'dYdX', 'Drift'];
-const symbols = ['BTC', 'ETH', 'SOL', 'ARB', 'DOGE', 'AVAX', 'LINK', 'OP'];
-
-function genRate() {
-  return ((Math.random() - 0.4) * 0.06).toFixed(4);
-}
+// ===== Real Funding Heatmap =====
+const heatmapSymbols = ['BTC', 'ETH', 'SOL', 'DOGE', 'XRP', 'AVAX', 'LINK', 'OP'];
+const heatmapData = {}; // { 'Binance': { 'BTC': 0.0001, ... }, ... }
 
 function rateColor(r) {
   const v = parseFloat(r);
-  if (v > 0.02) return 'rgba(255,71,87,0.7)';
-  if (v > 0.01) return 'rgba(255,71,87,0.4)';
+  if (v > 0.0005) return 'rgba(255,71,87,0.7)';
+  if (v > 0.0002) return 'rgba(255,71,87,0.4)';
   if (v > 0) return 'rgba(255,71,87,0.15)';
-  if (v > -0.01) return 'rgba(0,255,136,0.15)';
-  if (v > -0.02) return 'rgba(0,255,136,0.4)';
+  if (v > -0.0002) return 'rgba(0,255,136,0.15)';
+  if (v > -0.0005) return 'rgba(0,255,136,0.4)';
   return 'rgba(0,255,136,0.7)';
 }
 
-function buildHeatmap() {
+function ratePercent(r) {
+  return (parseFloat(r) * 100).toFixed(4) + '%';
+}
+
+async function fetchBinanceFunding() {
+  try {
+    const resp = await fetch('https://fapi.binance.com/fapi/v1/premiumIndex');
+    const data = await resp.json();
+    const map = {};
+    data.forEach(d => {
+      const sym = d.symbol.replace('USDT', '');
+      if (heatmapSymbols.includes(sym)) {
+        map[sym] = parseFloat(d.lastFundingRate);
+      }
+    });
+    heatmapData['Binance'] = map;
+  } catch(e) { console.warn('Binance funding failed', e); }
+}
+
+async function fetchOKXFunding() {
+  try {
+    const map = {};
+    for (const sym of heatmapSymbols) {
+      try {
+        const resp = await fetch(`https://www.okx.com/api/v5/public/funding-rate?instId=${sym}-USDT-SWAP`);
+        const data = await resp.json();
+        if (data.data && data.data[0]) {
+          map[sym] = parseFloat(data.data[0].fundingRate);
+        }
+      } catch(e) {}
+    }
+    heatmapData['OKX'] = map;
+  } catch(e) { console.warn('OKX funding failed', e); }
+}
+
+async function fetchBybitFunding() {
+  try {
+    const resp = await fetch('https://api.bybit.com/v5/market/tickers?category=linear');
+    const data = await resp.json();
+    const map = {};
+    if (data.result && data.result.list) {
+      data.result.list.forEach(d => {
+        const sym = d.symbol.replace('USDT', '');
+        if (heatmapSymbols.includes(sym) && d.fundingRate) {
+          map[sym] = parseFloat(d.fundingRate);
+        }
+      });
+    }
+    heatmapData['Bybit'] = map;
+  } catch(e) { console.warn('Bybit funding failed', e); }
+}
+
+async function fetchHyperliquidFunding() {
+  try {
+    const resp = await fetch('https://api.hyperliquid.xyz/info', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'metaAndAssetCtxs' })
+    });
+    const data = await resp.json();
+    const meta = data[0].universe;
+    const ctxs = data[1];
+    const map = {};
+    meta.forEach((m, i) => {
+      if (heatmapSymbols.includes(m.name) && ctxs[i]) {
+        map[m.name] = parseFloat(ctxs[i].funding);
+      }
+    });
+    heatmapData['Hyperliquid'] = map;
+  } catch(e) { console.warn('Hyperliquid funding failed', e); }
+}
+
+function renderHeatmap() {
   const grid = document.getElementById('heatmap-grid');
   grid.innerHTML = '';
-  // Header row
+  const exchanges = Object.keys(heatmapData);
+  if (exchanges.length === 0) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Loading real-time data from Binance, OKX, Bybit, Hyperliquid...</div>';
+    return;
+  }
+
+  // Header
   const corner = document.createElement('div');
   corner.className = 'heatmap-cell header';
   corner.textContent = 'Exchange';
   grid.appendChild(corner);
-  symbols.forEach(s => {
+  heatmapSymbols.forEach(s => {
     const h = document.createElement('div');
     h.className = 'heatmap-cell header';
     h.textContent = s;
     grid.appendChild(h);
   });
+
+  // Adjust grid columns
+  grid.style.gridTemplateColumns = `120px repeat(${heatmapSymbols.length}, 1fr)`;
+
   // Data rows
   exchanges.forEach(ex => {
     const label = document.createElement('div');
     label.className = 'heatmap-cell exchange';
-    label.textContent = ex;
+    label.innerHTML = ex + (ex === 'Hyperliquid' ? ' <span style="color:var(--green);font-size:9px">DEX</span>' : '');
     grid.appendChild(label);
-    symbols.forEach(sym => {
-      const rate = genRate();
+
+    heatmapSymbols.forEach(sym => {
       const cell = document.createElement('div');
       cell.className = 'heatmap-cell';
-      cell.style.background = rateColor(rate);
-      cell.textContent = rate + '%';
-      cell.style.color = parseFloat(rate) >= 0 ? '#ff8a80' : '#69f0ae';
-      cell.style.fontWeight = '600';
-      cell.style.fontFamily = "'JetBrains Mono',monospace";
-      // Tooltip
-      const tip = document.createElement('div');
-      tip.className = 'heatmap-tooltip';
-      tip.innerHTML = `<strong>${ex} — ${sym}/USDT</strong><br>Funding: ${rate}%<br>Next in: ${Math.floor(Math.random()*8)}h ${Math.floor(Math.random()*60)}m<br>24h Avg: ${(parseFloat(rate)*0.8).toFixed(4)}%`;
-      cell.appendChild(tip);
+      const rate = heatmapData[ex][sym];
+      if (rate !== undefined) {
+        cell.style.background = rateColor(rate);
+        cell.textContent = ratePercent(rate);
+        cell.style.color = rate >= 0 ? '#ff8a80' : '#69f0ae';
+        cell.style.fontWeight = '600';
+        cell.style.fontFamily = "'JetBrains Mono',monospace";
+        // Tooltip with real data
+        const tip = document.createElement('div');
+        tip.className = 'heatmap-tooltip';
+        const annualized = (rate * 3 * 365 * 100).toFixed(2);
+        tip.innerHTML = `<strong>${ex} — ${sym}/USDT</strong><br>Funding: ${ratePercent(rate)}<br>Annualized: ${annualized}%<br>Type: ${ex === 'Hyperliquid' ? 'Perp DEX' : 'CEX'}`;
+        cell.appendChild(tip);
+      } else {
+        cell.textContent = '—';
+        cell.style.color = 'var(--muted)';
+      }
       grid.appendChild(cell);
     });
   });
 }
-buildHeatmap();
 
-// Refresh heatmap every 5s
-setInterval(() => {
-  const cells = document.querySelectorAll('.heatmap-cell:not(.header):not(.exchange)');
-  cells.forEach(cell => {
-    const rate = genRate();
-    cell.style.background = rateColor(rate);
-    cell.childNodes[0].textContent = rate + '%';
-    cell.style.color = parseFloat(rate) >= 0 ? '#ff8a80' : '#69f0ae';
-  });
-}, 5000);
+async function loadAllFunding() {
+  document.getElementById('heatmap-grid').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">⏳ Fetching live funding rates from 4 exchanges...</div>';
+  await Promise.all([
+    fetchBinanceFunding(),
+    fetchOKXFunding(),
+    fetchBybitFunding(),
+    fetchHyperliquidFunding()
+  ]);
+  renderHeatmap();
+}
+
+// Load on start
+loadAllFunding();
+
+// Refresh every 60s
+setInterval(loadAllFunding, 60000);
 
 // ===== Widget Card Highlight =====
 function highlightWidget(el) {
